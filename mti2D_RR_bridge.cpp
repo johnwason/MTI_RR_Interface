@@ -1,61 +1,50 @@
 
 #include "mti2D_RR_bridge.h"
-namespace pointcloud = com::robotraconteur::pointcloud;
+
+#include <boost/program_options.hpp>
+
+namespace po = boost::program_options;
 //This program provides an initial Robot Raconteur server for controlling MTI's 2D Laser Profiler (type: 8000-1066-002)
 //Functions covers basic operations in this version. 
-using namespace RobotRaconteur;
+
 int main(int argc, char* argv[])
 {
+	po::options_description desc("Allowed options");
+    desc.add_options()
+        ("help", "produce help message")
+        ("scanner-ip-address", po::value<std::string>(), "IP address of scanner")
+		("scanner-port", po::value<std::string>(), "Port of scanner");
 
-	if (argc <4)
-	{
-		cout << "Expected the ip address and port number for the profiler" << endl;
-		return -1;
+    po::variables_map vm;
+    po::store(po::command_line_parser(argc, argv).options(desc).allow_unregistered().run(), vm);
+    po::notify(vm);
+
+    if (vm.count("help")) {
+        std::cout << desc << std::endl;
+        return 1;
+    }
+
+	std::string device_ipaddr = "192.168.100.1";
+	std::string device_port = "32001";
+
+	if (vm.count("scanner-ip-address")) {
+		device_ipaddr = vm["scanner-ip-address"].as<std::string>();
 	}
 
+	if (vm.count("scanner-port")) {
+		device_port = vm["scanner-port"].as<std::string>();
+	}
+	
 	//Initialize the MTI2D robot object
-	RR_SHARED_PTR<MTI2D_impl> mti2d = RR_MAKE_SHARED<MTI2D_impl>(string(argv[1]), string(argv[2]));
+	boost::shared_ptr<MTI2D_impl> mti2d = boost::make_shared<MTI2D_impl>(device_ipaddr, device_port);
 
 	if (mti2d->connected == true) {
-		ServerNodeSetup node_setup(ROBOTRACONTEUR_SERVICE_TYPES, "com.robotraconteur.pointcloud.sensor", 2354);
-		RobotRaconteurNode::s()->RegisterService("MTI2D", "com.robotraconteur.pointcloud.sensor", mti2d);
-		//Create local transport
-		/*
-		boost::shared_ptr<LocalTransport> t1 = boost::make_shared<LocalTransport>();
-		t1->StartServerAsNodeName("mti2D_RR_interface");
-		RobotRaconteurNode::s()->RegisterTransport(t1);
-
-		//Initialize the TCP transport and start listenin on port 2354
-		boost::shared_ptr<TcpTransport> t = boost::make_shared<TcpTransport>();
-
-		//Attempt to load a TLS certificate
-		try
-		{
-			t->LoadTlsNodeCertificate();
-		}
-		catch (std::exception&)
-		{
-			cout << "warning: could not load TLS certificate" << endl;
-		}
-
-		t->StartServer(stoi(string(argv[3])));
-
-		//Enable auto-discovery announcement
-		t->EnableNodeAnnounce(IPNodeDiscoveryFlags_LINK_LOCAL | IPNodeDiscoveryFlags_SITE_LOCAL | IPNodeDiscoveryFlags_NODE_LOCAL);
-
-		//Register the TCP transport
-		RobotRaconteurNode::s()->RegisterTransport(t);
-
-		//Register the MTI2D_RR_interface type so that the node can understand the service definition
-		RobotRaconteurNode::s()->RegisterServiceType(boost::make_shared<mti2D_RR_interfaceFactory>());
+		ServerNodeSetup node_setup(ROBOTRACONTEUR_SERVICE_TYPES, "experimental.create2", 60830);
 
 		//Register the MTI2D object as a service so that it can be connected to
 		RobotRaconteurNode::s()->RegisterService("MTI2D", "mti2D_RR_interface", mti2d);
-		*/
-		cout << "MTI2D server started, connect wtih tcp://localhost:" << string(argv[3]) << "/mti2D_RR_interface/MTI2D" << endl;
-		//boost::mutex::scoped_lock lock(MTI2D_impl::this_lock);
-		//pointcloud::sensor::PointCloudSensor_default_impl::set_point_cloud_sensor_data();
-		//this->rrvar_point_cloud_sensor_data = RR_MAKE_SHARED<PipeBroadcaster<pointcloud::sensor::PointCloudSensorDataPtr> >();
+
+		cout << "MTI2D server started, connect with rr+tcp://localhost:" << node_setup.GetTcpTransport()->GetListenPort() << "/?service=MTI2D" << endl;
 
 		//Stay open until shut down
 		cout << "Press enter to quit" << endl;
@@ -127,12 +116,8 @@ void MTI2D_impl::Disconnect() {
 		m_hEthernetScanner = NULL;
 	}
 }
-/*
-PointCloudSensorInfoPtr MTI2D_impl::get_point_cloud_sensor_info() {
-	
-}
-*/
-string MTI2D_impl::getPropertyValue(string propertyName)
+
+string MTI2D_impl::getPropertyValue(const string& propertyName)
 {
 	char chRetBuf[100];
 	char *cstr = new char[propertyName.length() + 1];
@@ -153,7 +138,7 @@ string MTI2D_impl::getPropertyValue(string propertyName)
 	}
 }
 
-void MTI2D_impl::setExposureTime(string exposureTime) {
+void MTI2D_impl::setExposureTime(const string& exposureTime) {
 
 	int exp_t = atoi(exposureTime.c_str());
 
@@ -167,7 +152,7 @@ void MTI2D_impl::setExposureTime(string exposureTime) {
 	return;
 }
 
-void MTI2D_impl::setAcquisitionLineTime(string acquisitionLineTime) {
+void MTI2D_impl::setAcquisitionLineTime(const string& acquisitionLineTime) {
 
 	int acql_t = atoi(acquisitionLineTime.c_str());
 
@@ -181,7 +166,7 @@ void MTI2D_impl::setAcquisitionLineTime(string acquisitionLineTime) {
 	return;
 }
 
-void MTI2D_impl::setLaserDeactivated(string isOff) {
+void MTI2D_impl::setLaserDeactivated(const string& isOff) {
 
 	int isOff_i = atoi(isOff.c_str());
 
@@ -195,7 +180,7 @@ void MTI2D_impl::setLaserDeactivated(string isOff) {
 	return;
 }
 
-void MTI2D_impl::setSignalSelection(string signal) {
+void MTI2D_impl::setSignalSelection(const string& signal) {
 
 	int sig_i = atoi(signal.c_str());
 
@@ -209,7 +194,7 @@ void MTI2D_impl::setSignalSelection(string signal) {
 	return;
 }
 
-void MTI2D_impl::setIsDoubleSampling(string isDblSmpling) {
+void MTI2D_impl::setIsDoubleSampling(const string& isDblSmpling) {
 
 	int isDblSmpling_i = atoi(isDblSmpling.c_str());
 
@@ -222,14 +207,12 @@ void MTI2D_impl::setIsDoubleSampling(string isDblSmpling) {
 
 
 //Capture line scan profile
-pointcloud::PointCloudfPtr MTI2D_impl::Capture()
+LineProfilePtr MTI2D_impl::Capture()
 {
 	boost::recursive_mutex::scoped_lock lock(global_lock);
 
-	//boost::shared_ptr<LineProfile> profile = boost::make_shared<LineProfile>();
-	pointcloud::PointCloudfPtr profile(new pointcloud::PointCloudf());
-	//profile->points = AllocateEmptyRRNamedArray<pointcloud::PointCloudPointf>(8192);
-	profile->points = AllocateEmptyRRNamedArray<com::robotraconteur::geometryf::Point>(8192);
+	LineProfilePtr profile(new LineProfile());
+
 
 	if (connected) {
 
@@ -248,29 +231,10 @@ pointcloud::PointCloudfPtr MTI2D_impl::Capture()
 			0,
 			&iPicCnt);
 
-		//pointcloud::PointCloud2Point pointsall[8192];
-		//profile->length = iEthernetScannerScanner1BufferValues;
-		for (int i = 0; i > iEthernetScannerScanner1BufferValues; i++) {
-			//pointcloud::PointCloudPointf pointcloudpoint;
-			com::robotraconteur::geometryf::Point pose;
-			com::robotraconteur::image::PixelRGBFloatPacked intensity;
-			intensity.s.rgb = m_iEthernetScannerBufferI[i];
-			pose.s.x = m_doEthernetScannerBufferX[i];
-			pose.s.y=m_doEthernetScannerBufferZ[i];
-			pose.s.z = 0;
-			//pointcloudpoint.s.rgb = intensity;
-			//pointcloudpoint.s.point = pose;
-			//profile->points->at(i) = pointcloudpoint;
-			profile->points->at(i) = pose;
-			//pointsall[i] = pointcloudpoint;
-		}
-		profile->width = iEthernetScannerScanner1BufferValues;
-		profile->height = 1;
-		profile->is_dense = true;
-		//profile->points = pointsall;
-		//profile->X_data = AttachRRArrayCopy((double*)this->m_doEthernetScannerBufferX, iEthernetScannerScanner1BufferValues);
-		//profile->Z_data = AttachRRArrayCopy((double*)this->m_doEthernetScannerBufferZ, iEthernetScannerScanner1BufferValues);
-		//profile->I_data = AttachRRArrayCopy((int32_t*)this->m_iEthernetScannerBufferI, iEthernetScannerScanner1BufferValues);
+		profile->length = iEthernetScannerScanner1BufferValues;
+		profile->X_data = AttachRRArrayCopy((double*)this->m_doEthernetScannerBufferX, iEthernetScannerScanner1BufferValues);
+		profile->Z_data = AttachRRArrayCopy((double*)this->m_doEthernetScannerBufferZ, iEthernetScannerScanner1BufferValues);
+		profile->I_data = AttachRRArrayCopy((int32_t*)this->m_iEthernetScannerBufferI, iEthernetScannerScanner1BufferValues);
 
 
 		CString strTemp;
@@ -294,17 +258,10 @@ pointcloud::PointCloudfPtr MTI2D_impl::Capture()
 
 		}
 	}
-	pointcloud::sensor::PointCloudSensorDataPtr data(new pointcloud::sensor::PointCloudSensorData());
-	data->point_cloud = profile;
-	this->rrvar_point_cloud_sensor_data->SendPacket(data);
 
 	return profile;	
 }
 
-void MTI2D_impl::set_point_cloud_sensor_data(PipePtr<pointcloud::sensor::PointCloudSensorDataPtr> value) {
-	pointcloud::sensor::PointCloudSensor_default_impl::set_point_cloud_sensor_data(value);
-	this->rrvar_point_cloud_sensor_data->SetMaximumBacklog(3);
-}
 
 void MTI2D_impl::Start(const char* ipaddr, const char* nport)
 {
@@ -400,7 +357,7 @@ void MTI2D_impl::Start(const char* ipaddr, const char* nport)
 		if (iRes > 0)
 		{		
 			connected = true;
-			// m_lineProfile = RR_MAKE_SHARED<LineProfile>();
+			m_lineProfile = new LineProfile();
 
 			//start the ReadOut-Thread
 			DWORD lpThreadId;
@@ -495,9 +452,8 @@ DWORD WINAPI MTI2D_impl::ThreadEthernetScannerGetXZI(LPVOID lpParameter)
 				}
 			}
 			pApp->m_usPicCnt = iPicCnt;
-			pointcloud::PointCloudfPtr profile(new pointcloud::PointCloudf());
-			profile->points = AllocateEmptyRRNamedArray<com::robotraconteur::geometryf::Point>(8192);
-			//RR_SHARED_PTR <LineProfile> profile = RR_MAKE_SHARED<LineProfile>();
+
+			LineProfilePtr profile(new LineProfile());
 			
 			if (pApp->isDoubleSampling) {
 				double m_doEthernetScannerBufferX_temp[ETHERNETSCANNER_SCANXMAX * ETHERNETSCANNER_PEAKSPERCMOSSCANLINEMAX];
@@ -512,45 +468,20 @@ DWORD WINAPI MTI2D_impl::ThreadEthernetScannerGetXZI(LPVOID lpParameter)
 					m_iEthernetScannerBufferI_temp[i] = (pApp->m_iEthernetScannerBufferI_prev[i] + pApp->m_iEthernetScannerBufferI[i])/2;
 				}
 
-				for (int i = 0; i > iEthernetScannerScanner1BufferValues; i++) {
-					//pointcloud::PointCloud2Point pointcloudpoint;
-					com::robotraconteur::geometryf::Point pose;
-					com::robotraconteur::image::PixelRGBFloatPacked intensity;
-					intensity.s.rgb = m_iEthernetScannerBufferI_temp[i];
-					pose.s.x = m_doEthernetScannerBufferX_temp[i];
-					pose.s.y = m_doEthernetScannerBufferZ_temp[i];
-					pose.s.z = 0;
-					//pointcloudpoint.s.rgb = intensity;
-					//pointcloudpoint.s.point = pose;
-					profile->points->at(i) = pose;
-					//pointsall[i] = pointcloudpoint;
-				}
-				profile->width = iEthernetScannerScanner1BufferValues;
-				profile->height = 1;
-				profile->is_dense = true;
+				profile->length = iEthernetScannerScanner1BufferValues;
+				profile->X_data = AttachRRArrayCopy((double*)m_doEthernetScannerBufferX_temp, iEthernetScannerScanner1BufferValues);
+				profile->Z_data = AttachRRArrayCopy((double*)m_doEthernetScannerBufferZ_temp, iEthernetScannerScanner1BufferValues);
+				profile->I_data = AttachRRArrayCopy((int32_t*)m_iEthernetScannerBufferI_temp, iEthernetScannerScanner1BufferValues);				
 			}
 			else {
-				
-				for (int i = 0; i > iEthernetScannerScanner1BufferValues; i++) {
-					//pointcloud::PointCloud2Point pointcloudpoint;
-					com::robotraconteur::geometryf::Point pose;
-					com::robotraconteur::image::PixelRGBFloatPacked intensity;
-					intensity.s.rgb = pApp->m_iEthernetScannerBufferI[i];
-					pose.s.x = pApp->m_doEthernetScannerBufferX[i];
-					pose.s.y = pApp->m_doEthernetScannerBufferZ[i];
-					pose.s.z = 0;
-					//pointcloudpoint.s.rgb = intensity;
-					//pointcloudpoint.s.point = pose;
-					profile->points->at(i) = pose;
-					//pointsall[i] = pointcloudpoint;
-				}
-				profile->width = iEthernetScannerScanner1BufferValues;
-				profile->height = 1;
-				profile->is_dense = true;
+				profile->length = iEthernetScannerScanner1BufferValues;
+				profile->X_data = AttachRRArrayCopy((double*)pApp->m_doEthernetScannerBufferX, iEthernetScannerScanner1BufferValues);
+				profile->Z_data = AttachRRArrayCopy((double*)pApp->m_doEthernetScannerBufferZ, iEthernetScannerScanner1BufferValues);
+				profile->I_data = AttachRRArrayCopy((int32_t*)pApp->m_iEthernetScannerBufferI, iEthernetScannerScanner1BufferValues);
 			}
 			
-			//set_point_cloud_sensor_data->SendPacket(profile);
-			//pApp->set_lineProfile(profile);
+
+			pApp->set_lineProfile(profile);
 
 			//if the scan data was received: do anything
 			if (iEthernetScannerScanner1BufferValues)
@@ -582,9 +513,9 @@ DWORD WINAPI MTI2D_impl::ThreadEthernetScannerGetXZI(LPVOID lpParameter)
 }
 
 
-/*
+
 //Set the lineProfile property
-void MTI2D_impl::set_lineProfile(RR_SHARED_PTR<LineProfile > profile)
+void MTI2D_impl::set_lineProfile(const LineProfilePtr& profile)
 {
 	m_lineProfile->length = profile->length;
 	m_lineProfile->X_data = profile->X_data;
@@ -593,10 +524,10 @@ void MTI2D_impl::set_lineProfile(RR_SHARED_PTR<LineProfile > profile)
 }
 
 //Return the DistanceTraveled property
-RR_SHARED_PTR<LineProfile > MTI2D_impl::get_lineProfile()
+LineProfilePtr MTI2D_impl::get_lineProfile()
 {
 	return m_lineProfile;
 }
-*/
+
 
 boost::recursive_mutex global_lock;

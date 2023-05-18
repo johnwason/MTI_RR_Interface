@@ -1,9 +1,5 @@
 #pragma once
-#include <boost/asio.hpp>
 #include <RobotRaconteur.h>
-#include "robotraconteur_generated.h"
-#include "mti2D_RR_interface.h"
-//#include "mti2D_RR_interface_stubskel.h"
 
 #include <boost/thread/mutex.hpp>
 #include <boost/thread.hpp>
@@ -14,8 +10,11 @@
 //MTI SDK
 #include <atlstr.h>
 #include <iostream>
-#include "EthernetScanner\EthernetScannerSDK.h"
-#include "EthernetScanner\EthernetScannerSDKDefine.h"
+#include "EthernetScannerSDK.h"
+#include "EthernetScannerSDKDefine.h"
+
+#include "robotraconteur_generated.h"
+
 
 
 
@@ -23,38 +22,34 @@ using namespace RobotRaconteur;
 using namespace boost;
 using namespace std;
 using namespace mti2D_RR_interface;
-namespace pointcloud = com::robotraconteur::pointcloud;
+
 //Global lock to protect from multi-threaded calls
 extern boost::recursive_mutex global_lock;
 
 //Class that implements the "Create" object abstract class
 //and also use "enable_shared_from_this" for shared_ptr support
-class MTI2D_impl : public MTI2D, public pointcloud::sensor::PointCloudSensor_default_impl
+class MTI2D_impl : public MTI2D, public boost::enable_shared_from_this<MTI2D_impl>
 {
 public:
 	MTI2D_impl(string ip, string port);
-	
+
 	void Shutdown();	
 
 	~MTI2D_impl();
 
-	virtual pointcloud::PointCloudfPtr Capture();
+	LineProfilePtr Capture() override;
 
-	
+	string getPropertyValue(const string& propertyName) override;
 
-	virtual string getPropertyValue(string propertyName);
+	void setExposureTime(const string& exposureTime) override;
 
-	//virtual PointCloudSensorInfoPtr get_point_cloud_sensor_info();
+	void setAcquisitionLineTime(const string& acquisitionLineTime) override;
 
-	virtual void setExposureTime(string exposureTime);
+	void setLaserDeactivated(const string& isOff) override;
 
-	virtual void setAcquisitionLineTime(string acquisitionLineTime);
+	void setSignalSelection(const string& signal) override;
 
-	virtual void setLaserDeactivated(string isOff);
-
-	virtual void setSignalSelection(string signal);
-
-	virtual void setIsDoubleSampling(string isDoubleSampling);
+	void setIsDoubleSampling(const string& isDoubleSampling) override;
 
 	bool connected;
 
@@ -68,7 +63,6 @@ public:
 	
 	int m_iEthernetScannerBufferPeakWidth_prev[ETHERNETSCANNER_SCANXMAX * ETHERNETSCANNER_PEAKSPERCMOSSCANLINEMAX];
 
-	virtual void set_point_cloud_sensor_data(PipePtr< pointcloud::sensor::PointCloudSensorDataPtr> value);
 
 private:
 
@@ -91,13 +85,13 @@ private:
 
 	void Start(const char* ipaddr, const char* nport);
 
-	//virtual RR_SHARED_PTR<LineProfile > get_lineProfile();
-	//virtual void set_lineProfile(RR_SHARED_PTR<LineProfile > value);
+	LineProfilePtr get_lineProfile() override;
+	void set_lineProfile(const LineProfilePtr& value) override;
 	
 	static DWORD WINAPI ThreadEthernetScannerGetXZI(LPVOID lpParameter);
 	HANDLE m_hCEthernetScannerGetXZIThreadID;
 
-	//RR_SHARED_PTR<LineProfile > m_lineProfile;
+	LineProfilePtr m_lineProfile;
 
 	BOOL m_bSaveOnce;
 	int m_iNumberProfilesToSaveMax;
