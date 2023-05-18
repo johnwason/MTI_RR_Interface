@@ -1,0 +1,23 @@
+﻿
+#Service to provide sample interface to the iRobot Create
+service mti2D_RR_interface
+
+option version 0.5
+
+struct LineProfile
+	field int32 length
+	field double[] X_data
+	field double[] Z_data
+	field int32[] I_data
+end struct
+
+object MTI2D
+    property LineProfile lineProfile
+	function LineProfile Capture()	
+	function string getPropertyValue(string propertyName)
+	function void setExposureTime(string exposureTime)
+	function void setAcquisitionLineTime(string acquisitionLineTime)
+	function void setLaserDeactivated(string isOff)
+	function void setSignalSelection(string signal)
+	function void setIsDoubleSampling(string isDblSmpling)
+end object
