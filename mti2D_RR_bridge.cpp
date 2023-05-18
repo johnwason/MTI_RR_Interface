@@ -7,7 +7,7 @@ using namespace RobotRaconteur;
 int main(int argc, char* argv[])
 {
 
-	if (argc <4)
+	if (argc <3)
 	{
 		cout << "Expected the ip address and port number for the profiler" << endl;
 		return -1;
@@ -16,8 +16,10 @@ int main(int argc, char* argv[])
 	//Initialize the MTI2D robot object
 	RR_SHARED_PTR<MTI2D_impl> mti2d = RR_MAKE_SHARED<MTI2D_impl>(string(argv[1]), string(argv[2]));
 
+	RobotRaconteur::Companion::RegisterStdRobDefServiceTypes();
+
 	if (mti2d->connected == true) {
-		ServerNodeSetup node_setup(ROBOTRACONTEUR_SERVICE_TYPES, "com.robotraconteur.pointcloud.sensor", 2354);
+		ServerNodeSetup node_setup(std::vector<ServiceFactoryPtr>(), "com.robotraconteur.pointcloud.sensor", 2354);
 		RobotRaconteurNode::s()->RegisterService("MTI2D", "com.robotraconteur.pointcloud.sensor", mti2d);
 		//Create local transport
 		/*
@@ -52,7 +54,7 @@ int main(int argc, char* argv[])
 		//Register the MTI2D object as a service so that it can be connected to
 		RobotRaconteurNode::s()->RegisterService("MTI2D", "mti2D_RR_interface", mti2d);
 		*/
-		cout << "MTI2D server started, connect wtih tcp://localhost:" << string(argv[3]) << "/mti2D_RR_interface/MTI2D" << endl;
+		cout << "MTI2D server started, connect wtih rr+tcp://localhost:" << node_setup.GetTcpTransport()->GetListenPort() << "/?service=MTI2D" << endl;
 		//boost::mutex::scoped_lock lock(MTI2D_impl::this_lock);
 		//pointcloud::sensor::PointCloudSensor_default_impl::set_point_cloud_sensor_data();
 		//this->rrvar_point_cloud_sensor_data = RR_MAKE_SHARED<PipeBroadcaster<pointcloud::sensor::PointCloudSensorDataPtr> >();
@@ -264,8 +266,8 @@ pointcloud::PointCloudfPtr MTI2D_impl::Capture()
 			profile->points->at(i) = pose;
 			//pointsall[i] = pointcloudpoint;
 		}
-		profile->width = iEthernetScannerScanner1BufferValues;
-		profile->height = 1;
+		//profile->width = iEthernetScannerScanner1BufferValues;
+		//profile->height = 1;
 		profile->is_dense = true;
 		//profile->points = pointsall;
 		//profile->X_data = AttachRRArrayCopy((double*)this->m_doEthernetScannerBufferX, iEthernetScannerScanner1BufferValues);
@@ -303,7 +305,7 @@ pointcloud::PointCloudfPtr MTI2D_impl::Capture()
 
 void MTI2D_impl::set_point_cloud_sensor_data(PipePtr<pointcloud::sensor::PointCloudSensorDataPtr> value) {
 	pointcloud::sensor::PointCloudSensor_default_impl::set_point_cloud_sensor_data(value);
-	this->rrvar_point_cloud_sensor_data->SetMaximumBacklog(3);
+	this->rrvar_point_cloud_sensor_data->SetMaxBacklog(3);
 }
 
 void MTI2D_impl::Start(const char* ipaddr, const char* nport)
@@ -525,8 +527,8 @@ DWORD WINAPI MTI2D_impl::ThreadEthernetScannerGetXZI(LPVOID lpParameter)
 					profile->points->at(i) = pose;
 					//pointsall[i] = pointcloudpoint;
 				}
-				profile->width = iEthernetScannerScanner1BufferValues;
-				profile->height = 1;
+				//profile->width = iEthernetScannerScanner1BufferValues;
+				//profile->height = 1;
 				profile->is_dense = true;
 			}
 			else {
@@ -544,8 +546,8 @@ DWORD WINAPI MTI2D_impl::ThreadEthernetScannerGetXZI(LPVOID lpParameter)
 					profile->points->at(i) = pose;
 					//pointsall[i] = pointcloudpoint;
 				}
-				profile->width = iEthernetScannerScanner1BufferValues;
-				profile->height = 1;
+				//profile->width = iEthernetScannerScanner1BufferValues;
+				//profile->height = 1;
 				profile->is_dense = true;
 			}
 			
