@@ -1,7 +1,7 @@
 #pragma once
 #include <boost/asio.hpp>
 #include <RobotRaconteur.h>
-#include "robotraconteur_generated.h"
+#include "RobotRaconteurCompanion/StdRobDef/StdRobDefAll.h"
 #include "mti2D_RR_interface.h"
 //#include "mti2D_RR_interface_stubskel.h"
 

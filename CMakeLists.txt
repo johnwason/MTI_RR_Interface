@@ -4,34 +4,10 @@ project(mti2D_RR)
 
 set (CMAKE_CXX_STANDARD 11)
 
-
-
-
 find_package(RobotRaconteur REQUIRED)
-find_package(RobotRaconteur_standard_robdef_cpp REQUIRED)
-include_directories(${RobotRaconteur_INCLUDE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+find_package(RobotRaconteurCompanion REQUIRED)
 link_directories(EthernetScanner/EthernetScanner_x64/)
 
-
-ROBOTRACONTEUR_GENERATE_THUNK(RR_THUNK_SRCS RR_THUNK_HDRS 
-	com.robotraconteur.geometry.robdef
-	com.robotraconteur.geometryf.robdef
-	com.robotraconteur.identifier.robdef
-	com.robotraconteur.resource.robdef
-	com.robotraconteur.image.robdef
-	com.robotraconteur.uuid.robdef
-	com.robotraconteur.datetime.robdef
-	com.robotraconteur.device.robdef
-	com.robotraconteur.param.robdef
-	com.robotraconteur.sensordata.robdef
-	com.robotraconteur.units.robdef
-	com.robotraconteur.datatype.robdef
-	com.robotraconteur.sensor.robdef
-	com.robotraconteur.pointcloud.robdef
-	com.robotraconteur.pointcloud.sensor.robdef
-	MASTER_HEADER
-	IMPORT_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../../robotraconteur_standard_robdef_cpp/robdef/group1
-	)
 if (MSVC)
    add_definitions(-D_USE_MATH_DEFINES)
    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
@@ -49,6 +25,14 @@ add_executable(mti2D_RR
 
 
 
-target_link_libraries(mti2D_RR RobotRaconteurCore ${Boost_LIBRARIES} ${RobotRaconteurCore_Extra_libraries} )
-target_link_libraries(mti2D_RR EthernetScanner.lib)
+target_link_libraries(mti2D_RR RobotRaconteurCompanion RobotRaconteurCore EthernetScanner.lib)
 
+include(GNUInstallDirs)
+
+install(TARGETS mti2D_RR RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES ${CMAKE_SOURCE_DIR}/EthernetScanner/EthernetScanner_x64/EthernetScanner.dll DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+set(CPACK_GENERATOR "ZIP")
+set(CPACK_PACKAGE_DIRECTORY ${PROJECT_BINARY_DIR}/package)
+
+include(CPack)
